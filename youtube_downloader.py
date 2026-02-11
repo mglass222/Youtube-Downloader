@@ -3,7 +3,20 @@ import os
 import threading
 import time
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
+
+try:
+    import customtkinter as ctk
+except ImportError:
+    root = tk.Tk()
+    root.withdraw()
+    messagebox.showerror(
+        "Missing Dependency",
+        "customtkinter is not installed.\n\n"
+        "Please run:\n  pip install customtkinter\n\n"
+        "Then restart this application."
+    )
+    sys.exit(1)
 
 try:
     import yt_dlp
@@ -18,6 +31,9 @@ except ImportError:
     )
     sys.exit(1)
 
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
 
 class YouTubeDownloaderApp:
     DEFAULT_FOLDER = r"C:\Users\mglas\Documents\Drum Tutorials"
@@ -25,8 +41,8 @@ class YouTubeDownloaderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("YouTube Video Downloader")
-        self.root.geometry("560x420")
-        self.root.minsize(480, 400)
+        self.root.geometry("600x540")
+        self.root.minsize(520, 540)
         self.root.resizable(True, False)
 
         self._cancel_event = threading.Event()
@@ -45,57 +61,62 @@ class YouTubeDownloaderApp:
     # ── GUI construction ─────────────────────────────────────
 
     def _build_ui(self):
-        pad = {"padx": 14, "pady": (6, 0)}
+        # Main card container
+        card = ctk.CTkFrame(self.root, corner_radius=12)
+        card.pack(fill="both", expand=True, padx=16, pady=16)
+
+        # Title
+        ctk.CTkLabel(card, text="YouTube Video Downloader", font=("Segoe UI", 20, "bold")).pack(
+            anchor="w", padx=20, pady=(20, 4)
+        )
+        ctk.CTkLabel(card, text="Download single videos or entire playlists", font=("Segoe UI", 12),
+                      text_color="#888").pack(anchor="w", padx=20, pady=(0, 12))
 
         # URL
-        tk.Label(self.root, text="YouTube URL", font=("Segoe UI", 10, "bold")).pack(anchor="w", **pad)
-        tk.Entry(self.root, textvariable=self.url_var, font=("Segoe UI", 10)).pack(
-            fill="x", padx=14, pady=(2, 0)
-        )
-        tk.Label(self.root, text="Supports single videos and playlists", font=("Segoe UI", 8), fg="#666").pack(
-            anchor="w", padx=14
-        )
+        ctk.CTkLabel(card, text="YouTube URL", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=20)
+        self.url_entry = ctk.CTkEntry(card, textvariable=self.url_var, placeholder_text="Paste YouTube URL here...",
+                                       height=36, font=("Segoe UI", 12))
+        self.url_entry.pack(fill="x", padx=20, pady=(4, 12))
 
         # Quality
-        tk.Label(self.root, text="Quality", font=("Segoe UI", 10, "bold")).pack(anchor="w", **pad)
-        qframe = tk.Frame(self.root)
-        qframe.pack(anchor="w", padx=14)
-        for label, val in [("480p", "480"), ("720p", "720"), ("1080p", "1080")]:
-            tk.Radiobutton(qframe, text=label, variable=self.quality_var, value=val, font=("Segoe UI", 10)).pack(
-                side="left", padx=(0, 16)
-            )
+        ctk.CTkLabel(card, text="Quality", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=20)
+        self.quality_seg = ctk.CTkSegmentedButton(card, values=["480p", "720p", "1080p"],
+                                                   command=self._on_quality_change, font=("Segoe UI", 12))
+        self.quality_seg.set("720p")
+        self.quality_seg.pack(fill="x", padx=20, pady=(4, 12))
 
         # Output folder
-        tk.Label(self.root, text="Save To", font=("Segoe UI", 10, "bold")).pack(anchor="w", **pad)
-        fframe = tk.Frame(self.root)
-        fframe.pack(fill="x", padx=14, pady=(2, 0))
-        self.folder_entry = tk.Entry(fframe, textvariable=self.folder_var, font=("Segoe UI", 10))
+        ctk.CTkLabel(card, text="Save To", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=20)
+        fframe = ctk.CTkFrame(card, fg_color="transparent")
+        fframe.pack(fill="x", padx=20, pady=(4, 12))
+        self.folder_entry = ctk.CTkEntry(fframe, textvariable=self.folder_var, height=36, font=("Segoe UI", 12))
         self.folder_entry.pack(side="left", fill="x", expand=True)
-        self.browse_btn = tk.Button(fframe, text="Browse", command=self._browse_folder, font=("Segoe UI", 9))
-        self.browse_btn.pack(side="left", padx=(6, 0))
+        self.browse_btn = ctk.CTkButton(fframe, text="Browse", command=self._browse_folder, width=80, height=36,
+                                         font=("Segoe UI", 12), fg_color="#555", hover_color="#666")
+        self.browse_btn.pack(side="left", padx=(8, 0))
 
         # Progress
-        tk.Label(self.root, text="").pack()  # spacer
-        self.progress_bar = ttk.Progressbar(self.root, mode="determinate", maximum=100)
-        self.progress_bar.pack(fill="x", padx=14)
-        self.status_label = tk.Label(self.root, text="Ready", font=("Segoe UI", 9), anchor="w")
-        self.status_label.pack(fill="x", padx=14)
-        self.speed_label = tk.Label(self.root, text="", font=("Segoe UI", 9), fg="#555", anchor="w")
-        self.speed_label.pack(fill="x", padx=14)
+        self.progress_bar = ctk.CTkProgressBar(card, height=14, corner_radius=7)
+        self.progress_bar.set(0)
+        self.progress_bar.pack(fill="x", padx=20, pady=(8, 2))
+        self.status_label = ctk.CTkLabel(card, text="Ready", font=("Segoe UI", 11), anchor="w")
+        self.status_label.pack(fill="x", padx=20)
+        self.speed_label = ctk.CTkLabel(card, text="", font=("Segoe UI", 11), text_color="#888", anchor="w")
+        self.speed_label.pack(fill="x", padx=20)
 
         # Buttons
-        bframe = tk.Frame(self.root)
-        bframe.pack(pady=(12, 14))
-        self.download_btn = tk.Button(
-            bframe, text="Download", command=self._start_download,
-            font=("Segoe UI", 10, "bold"), width=12
-        )
-        self.download_btn.pack(side="left", padx=6)
-        self.cancel_btn = tk.Button(
-            bframe, text="Cancel", command=self._cancel_download,
-            font=("Segoe UI", 10), width=12, state="disabled"
-        )
-        self.cancel_btn.pack(side="left", padx=6)
+        bframe = ctk.CTkFrame(card, fg_color="transparent")
+        bframe.pack(pady=(12, 20))
+        self.download_btn = ctk.CTkButton(bframe, text="Download", command=self._start_download,
+                                           width=150, height=40, font=("Segoe UI", 13, "bold"))
+        self.download_btn.pack(side="left", padx=8)
+        self.cancel_btn = ctk.CTkButton(bframe, text="Cancel", command=self._cancel_download,
+                                         width=150, height=40, font=("Segoe UI", 13),
+                                         fg_color="#555", hover_color="#666", state="disabled")
+        self.cancel_btn.pack(side="left", padx=8)
+
+    def _on_quality_change(self, value):
+        self.quality_var.set(value.replace("p", ""))
 
     # ── Actions ───────────────────────────────────────────────
 
@@ -127,9 +148,9 @@ class YouTubeDownloaderApp:
         self._downloading = True
         self._download_phase = 0
         self._current_video_id = None
-        self.progress_bar["value"] = 0
-        self.status_label.config(text="Starting download...")
-        self.speed_label.config(text="")
+        self.progress_bar.set(0)
+        self.status_label.configure(text="Starting download...")
+        self.speed_label.configure(text="")
 
         thread = threading.Thread(target=self._download_thread, args=(url, output_dir), daemon=True)
         thread.start()
@@ -137,7 +158,7 @@ class YouTubeDownloaderApp:
     def _cancel_download(self):
         if self._downloading:
             self._cancel_event.set()
-            self.status_label.config(text="Cancelling...")
+            self.status_label.configure(text="Cancelling...")
 
     def _on_close(self):
         if self._downloading:
@@ -231,31 +252,31 @@ class YouTubeDownloaderApp:
     # ── UI updates (main thread) ──────────────────────────────
 
     def _update_progress(self, percent, status_text, speed_text):
-        self.progress_bar["value"] = percent
-        self.status_label.config(text=status_text)
-        self.speed_label.config(text=speed_text)
+        self.progress_bar.set(percent / 100)
+        self.status_label.configure(text=status_text)
+        self.speed_label.configure(text=speed_text)
 
     def _on_download_complete(self, success, message):
         self._downloading = False
         self._set_ui_state(True)
-        self.progress_bar["value"] = 100 if success else 0
-        self.speed_label.config(text="")
+        self.progress_bar.set(1.0 if success else 0.0)
+        self.speed_label.configure(text="")
 
         if success:
-            self.status_label.config(text="Download complete!")
+            self.status_label.configure(text="Download complete!")
         else:
-            self.status_label.config(text="Ready")
+            self.status_label.configure(text="Ready")
             if "cancelled" not in message.lower():
                 messagebox.showerror("Download Failed", message)
 
     def _set_ui_state(self, enabled):
         state = "normal" if enabled else "disabled"
-        for widget in (self.folder_entry, self.browse_btn, self.download_btn):
-            widget.config(state=state)
-        self.cancel_btn.config(state="disabled" if enabled else "normal")
+        for widget in (self.url_entry, self.folder_entry, self.browse_btn, self.download_btn, self.quality_seg):
+            widget.configure(state=state)
+        self.cancel_btn.configure(state="disabled" if enabled else "normal")
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ctk.CTk()
     YouTubeDownloaderApp(root)
     root.mainloop()

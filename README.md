@@ -17,6 +17,7 @@ A simple GUI application for downloading YouTube videos and playlists. Built for
 |---|---|---|
 | **Python 3.10+** | Runtime | [python.org](https://www.python.org/downloads/) |
 | **yt-dlp** | YouTube download backend | `pip install yt-dlp` |
+| **customtkinter** | Modern dark-themed GUI | `pip install customtkinter` |
 | **ffmpeg** | Merges video + audio streams into MP4 | `winget install Gyan.FFmpeg` |
 | **tkinter** | GUI framework | Included with Python on Windows |
 
@@ -29,9 +30,9 @@ A simple GUI application for downloading YouTube videos and playlists. Built for
    winget install Gyan.FFmpeg
    ```
 
-3. Install yt-dlp:
+3. Install Python packages:
    ```
-   pip install yt-dlp
+   pip install yt-dlp customtkinter
    ```
 
 4. Verify both are available:
